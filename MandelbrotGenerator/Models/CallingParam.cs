@@ -2,11 +2,9 @@
 {
     public class CallingParam
     {
-        public int ImageBlockSize { get; set; }
-        public bool Colored { get; set; }
-        public bool ForceBGTransparent { get; set; }
-        public bool DrawSatellite { get; set; }
-        public bool DrawLineToSatellite { get; set; }
-        public bool DrawInnerCircles { get; set; }
+        public int MaxIteration { get; set; }
+        public bool SmoothColor { get; set; }
+        public WindowBoundary Window { get; set; }
+        public DomainBoundary Domain { get; set; }
     }
 }

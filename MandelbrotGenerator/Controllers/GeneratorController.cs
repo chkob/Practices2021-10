@@ -4,10 +4,8 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
 
 namespace MandelbrotGenerator.Controllers
 {
@@ -26,55 +24,20 @@ namespace MandelbrotGenerator.Controllers
         public IActionResult Get([FromBody] CallingParam param)
         {
             if (param == null) return BadRequest();
-            if (param.ImageBlockSize <= 0) return BadRequest();
 
-            var imageBlockSize = param.ImageBlockSize;
-
-            if (imageBlockSize < 64) imageBlockSize = 64;
-
-            var now = DateTime.Now;
-            var unixTimestamp = (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-            var nowTimestamp = (DateTime.UtcNow.Subtract(new DateTime(now.Year, 1, 1))).TotalSeconds;
-            var nowMillisecs = now.Millisecond;
-
-            var rng = new Random(nowMillisecs);
-
-            var pixelsize = 2;
-            var size = imageBlockSize * pixelsize;
-            var width = size;
-            var height = size;
-
-            using (var bmp = new Bitmap(width, height, PixelFormat.Format24bppRgb))
+            try
             {
-                using (var g = Graphics.FromImage(bmp))
-                {
-                    var penColor = Color.FromArgb(255, 255, 255, 255);
-
-                    if (param.Colored)
-                    {
-                        var red = rng.Next(60, 255);
-                        var green = rng.Next(60, 255);
-                        var blue = rng.Next(60, 255);
-
-                        penColor = Color.FromArgb(255, red, green, blue);
-                    }
-
-                    var backgroundColor = Color.FromArgb(255, 30, 30, 30);
-
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
-                    g.Clear(backgroundColor);
-
-                    if (param.ForceBGTransparent)
-                    {
-                        bmp.MakeTransparent(backgroundColor);
-                    }
-                }
+                var bmp = Fractal(param.Window, param.Domain, param.MaxIteration, param.SmoothColor, CalcMandelbrot);
 
                 var ms = new MemoryStream();
 
                 bmp.Save(ms, ImageFormat.Png);
 
                 return new FileContentResult(ms.ToArray(), "image/png");
+            }
+            catch
+            {
+                return BadRequest();
             }
         }
 
@@ -83,57 +46,43 @@ namespace MandelbrotGenerator.Controllers
         {
             var param = new CallingParam
             {
-                ImageBlockSize = 200,
-                Colored = true
+                MaxIteration = 500,
+                SmoothColor = false,
+                Window = new WindowBoundary
+                {
+                    MinX = 0,
+                    MaxX = 800,
+                    MinY = 0,
+                    MaxY = 800
+                },
+                Domain = new DomainBoundary
+                {
+                    MinY = -1.31,
+                    MaxY = 0.1,
+                    MinX = -1.7,
+                    MaxX = -0.7
+                }
             };
 
-            var imageBlockSize = param.ImageBlockSize;
-
-            if (imageBlockSize < 64) imageBlockSize = 64;
-
-            var now = DateTime.Now;
-            var unixTimestamp = (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-            var nowTimestamp = (DateTime.UtcNow.Subtract(new DateTime(now.Year, 1, 1))).TotalSeconds;
-            var nowMillisecs = now.Millisecond;
-
-            var rng = new Random(nowMillisecs);
-
-            var pixelsize = 2;
-            var size = imageBlockSize * pixelsize;
-            var width = size;
-            var height = size;
-
-            using (var bmp = new Bitmap(width, height, PixelFormat.Format24bppRgb))
+            try
             {
-                using (var g = Graphics.FromImage(bmp))
-                {
-                    var penColor = Color.FromArgb(255, 255, 255, 255);
-
-                    if (param.Colored)
+                var bmp = FractalWithSeed(param.Window, param.Domain, param.MaxIteration, param.SmoothColor, 
+                    new Complex
                     {
-                        var red = rng.Next(60, 255);
-                        var green = rng.Next(60, 255);
-                        var blue = rng.Next(60, 255);
-
-                        penColor = Color.FromArgb(255, red, green, blue);
-                    }
-
-                    var backgroundColor = Color.FromArgb(255, 30, 30, 30);
-
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
-                    g.Clear(backgroundColor);
-
-                    if (param.ForceBGTransparent)
-                    {
-                        bmp.MakeTransparent(backgroundColor);
-                    }
-                }
+                        Real = -1.0,
+                        Imaginary = -2.0
+                    }, 
+                    CalcMandelbrot);
 
                 var ms = new MemoryStream();
 
                 bmp.Save(ms, ImageFormat.Png);
 
                 return new FileContentResult(ms.ToArray(), "image/png");
+            }
+            catch
+            {
+                return BadRequest();
             }
         }
 
@@ -141,55 +90,20 @@ namespace MandelbrotGenerator.Controllers
         public IActionResult GetMandelbrot([FromBody] CallingParam param)
         {
             if (param == null) return BadRequest();
-            if (param.ImageBlockSize <= 0) return BadRequest();
 
-            var imageBlockSize = param.ImageBlockSize;
-
-            if (imageBlockSize < 64) imageBlockSize = 64;
-
-            var now = DateTime.Now;
-            var unixTimestamp = (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-            var nowTimestamp = (DateTime.UtcNow.Subtract(new DateTime(now.Year, 1, 1))).TotalSeconds;
-            var nowMillisecs = now.Millisecond;
-
-            var rng = new Random(nowMillisecs);
-
-            var pixelsize = 2;
-            var size = imageBlockSize * pixelsize;
-            var width = size;
-            var height = size;
-
-            using (var bmp = new Bitmap(width, height, PixelFormat.Format24bppRgb))
+            try
             {
-                using (var g = Graphics.FromImage(bmp))
-                {
-                    var penColor = Color.FromArgb(255, 255, 255, 255);
-
-                    if (param.Colored)
-                    {
-                        var red = rng.Next(60, 255);
-                        var green = rng.Next(60, 255);
-                        var blue = rng.Next(60, 255);
-
-                        penColor = Color.FromArgb(255, red, green, blue);
-                    }
-
-                    var backgroundColor = Color.FromArgb(255, 30, 30, 30);
-
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
-                    g.Clear(backgroundColor);
-
-                    if (param.ForceBGTransparent)
-                    {
-                        bmp.MakeTransparent(backgroundColor);
-                    }
-                }
+                var bmp = Fractal(param.Window, param.Domain, param.MaxIteration, param.SmoothColor, CalcMandelbrot);
 
                 var ms = new MemoryStream();
 
                 bmp.Save(ms, ImageFormat.Png);
 
                 return new FileContentResult(ms.ToArray(), "image/png");
+            }
+            catch
+            {
+                return BadRequest();
             }
         }
 
@@ -197,55 +111,20 @@ namespace MandelbrotGenerator.Controllers
         public IActionResult GetTripleMandelbrot([FromBody] CallingParam param)
         {
             if (param == null) return BadRequest();
-            if (param.ImageBlockSize <= 0) return BadRequest();
 
-            var imageBlockSize = param.ImageBlockSize;
-
-            if (imageBlockSize < 64) imageBlockSize = 64;
-
-            var now = DateTime.Now;
-            var unixTimestamp = (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-            var nowTimestamp = (DateTime.UtcNow.Subtract(new DateTime(now.Year, 1, 1))).TotalSeconds;
-            var nowMillisecs = now.Millisecond;
-
-            var rng = new Random(nowMillisecs);
-
-            var pixelsize = 2;
-            var size = imageBlockSize * pixelsize;
-            var width = size;
-            var height = size;
-
-            using (var bmp = new Bitmap(width, height, PixelFormat.Format24bppRgb))
+            try
             {
-                using (var g = Graphics.FromImage(bmp))
-                {
-                    var penColor = Color.FromArgb(255, 255, 255, 255);
-
-                    if (param.Colored)
-                    {
-                        var red = rng.Next(60, 255);
-                        var green = rng.Next(60, 255);
-                        var blue = rng.Next(60, 255);
-
-                        penColor = Color.FromArgb(255, red, green, blue);
-                    }
-
-                    var backgroundColor = Color.FromArgb(255, 30, 30, 30);
-
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
-                    g.Clear(backgroundColor);
-
-                    if (param.ForceBGTransparent)
-                    {
-                        bmp.MakeTransparent(backgroundColor);
-                    }
-                }
+                var bmp = Fractal(param.Window, param.Domain, param.MaxIteration, param.SmoothColor, CalcTrippleMandelbrot);
 
                 var ms = new MemoryStream();
 
                 bmp.Save(ms, ImageFormat.Png);
 
                 return new FileContentResult(ms.ToArray(), "image/png");
+            }
+            catch
+            {
+                return BadRequest();
             }
         }
 
@@ -253,55 +132,20 @@ namespace MandelbrotGenerator.Controllers
         public IActionResult GetQuadrupleMandelbrot([FromBody] CallingParam param)
         {
             if (param == null) return BadRequest();
-            if (param.ImageBlockSize <= 0) return BadRequest();
 
-            var imageBlockSize = param.ImageBlockSize;
-
-            if (imageBlockSize < 64) imageBlockSize = 64;
-
-            var now = DateTime.Now;
-            var unixTimestamp = (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-            var nowTimestamp = (DateTime.UtcNow.Subtract(new DateTime(now.Year, 1, 1))).TotalSeconds;
-            var nowMillisecs = now.Millisecond;
-
-            var rng = new Random(nowMillisecs);
-
-            var pixelsize = 2;
-            var size = imageBlockSize * pixelsize;
-            var width = size;
-            var height = size;
-
-            using (var bmp = new Bitmap(width, height, PixelFormat.Format24bppRgb))
+            try
             {
-                using (var g = Graphics.FromImage(bmp))
-                {
-                    var penColor = Color.FromArgb(255, 255, 255, 255);
-
-                    if (param.Colored)
-                    {
-                        var red = rng.Next(60, 255);
-                        var green = rng.Next(60, 255);
-                        var blue = rng.Next(60, 255);
-
-                        penColor = Color.FromArgb(255, red, green, blue);
-                    }
-
-                    var backgroundColor = Color.FromArgb(255, 30, 30, 30);
-
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
-                    g.Clear(backgroundColor);
-
-                    if (param.ForceBGTransparent)
-                    {
-                        bmp.MakeTransparent(backgroundColor);
-                    }
-                }
+                var bmp = Fractal(param.Window, param.Domain, param.MaxIteration, param.SmoothColor, CalcQuadruppleMandelbrot);
 
                 var ms = new MemoryStream();
 
                 bmp.Save(ms, ImageFormat.Png);
 
                 return new FileContentResult(ms.ToArray(), "image/png");
+            }
+            catch
+            {
+                return BadRequest();
             }
         }
 
@@ -309,55 +153,20 @@ namespace MandelbrotGenerator.Controllers
         public IActionResult GetFiveFoldMandelbrot([FromBody] CallingParam param)
         {
             if (param == null) return BadRequest();
-            if (param.ImageBlockSize <= 0) return BadRequest();
 
-            var imageBlockSize = param.ImageBlockSize;
-
-            if (imageBlockSize < 64) imageBlockSize = 64;
-
-            var now = DateTime.Now;
-            var unixTimestamp = (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-            var nowTimestamp = (DateTime.UtcNow.Subtract(new DateTime(now.Year, 1, 1))).TotalSeconds;
-            var nowMillisecs = now.Millisecond;
-
-            var rng = new Random(nowMillisecs);
-
-            var pixelsize = 2;
-            var size = imageBlockSize * pixelsize;
-            var width = size;
-            var height = size;
-
-            using (var bmp = new Bitmap(width, height, PixelFormat.Format24bppRgb))
+            try
             {
-                using (var g = Graphics.FromImage(bmp))
-                {
-                    var penColor = Color.FromArgb(255, 255, 255, 255);
-
-                    if (param.Colored)
-                    {
-                        var red = rng.Next(60, 255);
-                        var green = rng.Next(60, 255);
-                        var blue = rng.Next(60, 255);
-
-                        penColor = Color.FromArgb(255, red, green, blue);
-                    }
-
-                    var backgroundColor = Color.FromArgb(255, 30, 30, 30);
-
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
-                    g.Clear(backgroundColor);
-
-                    if (param.ForceBGTransparent)
-                    {
-                        bmp.MakeTransparent(backgroundColor);
-                    }
-                }
+                var bmp = Fractal(param.Window, param.Domain, param.MaxIteration, param.SmoothColor, CalcFiveFoldMandelbrot);
 
                 var ms = new MemoryStream();
 
                 bmp.Save(ms, ImageFormat.Png);
 
                 return new FileContentResult(ms.ToArray(), "image/png");
+            }
+            catch
+            {
+                return BadRequest();
             }
         }
 
@@ -365,49 +174,10 @@ namespace MandelbrotGenerator.Controllers
         public IActionResult GetSixFoldMandelbrot([FromBody] CallingParam param)
         {
             if (param == null) return BadRequest();
-            if (param.ImageBlockSize <= 0) return BadRequest();
 
-            var imageBlockSize = param.ImageBlockSize;
-
-            if (imageBlockSize < 64) imageBlockSize = 64;
-
-            var now = DateTime.Now;
-            var unixTimestamp = (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-            var nowTimestamp = (DateTime.UtcNow.Subtract(new DateTime(now.Year, 1, 1))).TotalSeconds;
-            var nowMillisecs = now.Millisecond;
-
-            var rng = new Random(nowMillisecs);
-
-            var pixelsize = 2;
-            var size = imageBlockSize * pixelsize;
-            var width = size;
-            var height = size;
-
-            using (var bmp = new Bitmap(width, height, PixelFormat.Format24bppRgb))
+            try
             {
-                using (var g = Graphics.FromImage(bmp))
-                {
-                    var penColor = Color.FromArgb(255, 255, 255, 255);
-
-                    if (param.Colored)
-                    {
-                        var red = rng.Next(60, 255);
-                        var green = rng.Next(60, 255);
-                        var blue = rng.Next(60, 255);
-
-                        penColor = Color.FromArgb(255, red, green, blue);
-                    }
-
-                    var backgroundColor = Color.FromArgb(255, 30, 30, 30);
-
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
-                    g.Clear(backgroundColor);
-
-                    if (param.ForceBGTransparent)
-                    {
-                        bmp.MakeTransparent(backgroundColor);
-                    }
-                }
+                var bmp = Fractal(param.Window, param.Domain, param.MaxIteration, param.SmoothColor, CalcSixFoldMandelbrot);
 
                 var ms = new MemoryStream();
 
@@ -415,6 +185,177 @@ namespace MandelbrotGenerator.Controllers
 
                 return new FileContentResult(ms.ToArray(), "image/png");
             }
+            catch
+            {
+                return BadRequest();
+            }
+        }
+
+        private Bitmap Fractal(WindowBoundary window, DomainBoundary domain, int iterMax, bool smoothColor, Func<Complex, Complex, Complex> func)
+        {
+            var escapeMap = GetNumberIterations(window, domain, iterMax, func);
+
+            var bmp = new Bitmap(window.MaxX - window.MinX, window.MaxY - window.MinY, PixelFormat.Format24bppRgb);
+
+            var k = 0;
+            using (var g = Graphics.FromImage(bmp))
+            {
+                for (int i = window.MinY; i < window.MaxY; ++i)
+                {
+                    for (int j = window.MinX; j < window.MaxX; ++j)
+                    {
+                        int n = escapeMap[k];
+
+                        var rgb = smoothColor ? GetRgbSmooth(n, iterMax) : GetRgbPiecewiseLinear(n, iterMax);
+                        bmp.SetPixel(j, i, Color.FromArgb(255, rgb.Item1, rgb.Item2, rgb.Item3));
+
+                        k++;
+                    }
+                }
+            }
+
+            return bmp;
+        }
+
+        private Bitmap FractalWithSeed(WindowBoundary window, DomainBoundary domain, int iterMax, bool smoothColor, Complex seed, Func<Complex, Complex, Complex> func)
+        {
+            var escapeMap = GetNumberIterationsWithSeed(window, domain, iterMax, seed, func);
+
+            var bmp = new Bitmap(window.MaxX - window.MinX, window.MaxY - window.MinY, PixelFormat.Format24bppRgb);
+
+            var k = 0;
+            using (var g = Graphics.FromImage(bmp))
+            {
+                for (int i = window.MinY; i < window.MaxY; ++i)
+                {
+                    for (int j = window.MinX; j < window.MaxX; ++j)
+                    {
+                        int n = escapeMap[k];
+
+                        var rgb = smoothColor ? GetRgbSmooth(n, iterMax) : GetRgbPiecewiseLinear(n, iterMax);
+                        bmp.SetPixel(j, i, Color.FromArgb(255, rgb.Item1, rgb.Item2, rgb.Item3));
+
+                        k++;
+                    }
+                }
+            }
+
+            return bmp;
+        }
+
+        private Complex CalcMandelbrot(Complex z, Complex c)
+        {
+            return (z * z) + c;
+        }
+
+        private Complex CalcTrippleMandelbrot(Complex z, Complex c)
+        {
+            return (z * z * z) + c;
+        }
+
+        private Complex CalcQuadruppleMandelbrot(Complex z, Complex c)
+        {
+            return (z * z * z * z) + c;
+        }
+
+        private Complex CalcFiveFoldMandelbrot(Complex z, Complex c)
+        {
+            return (z * z * z * z * z) + c;
+        }
+
+        private Complex CalcSixFoldMandelbrot(Complex z, Complex c)
+        {
+            return (z * z * z * z * z * z) + c;
+        }
+
+        private int Escape(Complex c, int iter_max, Func<Complex, Complex, Complex> func)
+        {
+            var z = new Complex(0.0, 0.0);
+            int iter = 0;
+
+            while (z.Abs() < 2.0 && iter < iter_max)
+            {
+                z = func(z, c);
+                iter++;
+            }
+
+            return iter;
+        }
+
+        private Complex Scale(WindowBoundary window, DomainBoundary domain, Complex c)
+        {
+            var aux = new Complex(
+                c.Real / (double)((window.MaxX - window.MinX) * (domain.MaxX - domain.MinX) + domain.MinX),
+                c.Imaginary / (double)((window.MaxY - window.MinY) * (domain.MaxY - domain.MinY) + domain.MinY));
+            return aux;
+        }
+
+        private IDictionary<int, int> GetNumberIterations(WindowBoundary window, DomainBoundary domain, int iterMax, Func<Complex, Complex, Complex> func)
+        {
+            var escapeMap = new Dictionary<int, int>();
+
+            int k = 0;
+            for (int i = window.MinY; i < window.MaxY; ++i)
+            {
+                for (int j = window.MinX; j < window.MaxX; ++j)
+                {
+                    var c = new Complex(j, i);
+                    c = Scale(window, domain, c);
+                    escapeMap[k] = Escape(c, iterMax, func);
+                    k++;
+                }
+            }
+
+            return escapeMap;
+        }
+
+        private IDictionary<int, int> GetNumberIterationsWithSeed(WindowBoundary window, DomainBoundary domain, int iterMax, Complex seed, Func<Complex, Complex, Complex> func)
+        {
+            var escapeMap = new Dictionary<int, int>();
+
+            int k = 0;
+            for (int i = window.MinY; i < window.MaxY; ++i)
+            {
+                for (int j = window.MinX; j < window.MaxX; ++j)
+                {
+                    var c = new Complex(j, i) + seed;
+                    c = Scale(window, domain, c);
+                    escapeMap[k] = Escape(c, iterMax, func);
+                    k++;
+                }
+            }
+
+            return escapeMap;
+        }
+
+        private (byte, byte, byte) GetRgbPiecewiseLinear(int n, int iterMax)
+        {
+            int N = 256; // colors per element
+            int N3 = N * N * N;
+            // map n on the 0..1 interval (real numbers)
+            double t = (double)n / (double)iterMax;
+            // expand n on the 0 .. 256^3 interval (integers)
+            n = (int)(t * (double)N3);
+
+            int b = n / (N * N);
+            int nn = n - b * N * N;
+            int r = nn / N;
+            int g = nn - r * N;
+
+            return ((byte)r, (byte)g, (byte)b);
+        }
+
+        private (byte, byte, byte) GetRgbSmooth(int n, int iterMax)
+        {
+            // map n on the 0..1 interval
+            double t = (double)n / (double)iterMax;
+
+            // Use smooth polynomials for r, g, b
+            int r = (int)(9 * (1 - t) * t * t * t * 255);
+            int g = (int)(15 * (1 - t) * (1 - t) * t * t * 255);
+            int b = (int)(8.5 * (1 - t) * (1 - t) * (1 - t) * t * 255);
+
+            return ((byte)r, (byte)g, (byte)b);
         }
     }
 }

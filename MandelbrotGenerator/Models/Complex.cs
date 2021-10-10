@@ -1,9 +1,19 @@
-﻿namespace MandelbrotGenerator.Models
+﻿using System;
+
+namespace MandelbrotGenerator.Models
 {
     public class Complex
     {
         public double Real { get; set; }
         public double Imaginary { get; set; }
+
+        public Complex() { }
+
+        public Complex(double r, double im)
+        {
+            Real = r;
+            Imaginary = im;
+        }
 
         public static Complex operator +(Complex b, Complex c)
         {
@@ -21,6 +31,11 @@
                 Real = Real,
                 Imaginary = -1*Imaginary
             };
+        }
+
+        public double Abs()
+        {
+            return Math.Abs(Math.Sqrt(((Real*Real)+(Imaginary*Imaginary))));
         }
 
         public static Complex operator -(Complex b, Complex c)
