@@ -1,0 +1,7 @@
+**/node_modules
+**/.yarn
+**/bin
+**/obj
+**/dist
+**/obj
+**/bin
